@@ -14,12 +14,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - name: Pila con el motor simulado
-        run: |
-          printf 'BOOTLYGA_TOKEN=%s\n' 'ci-bootlyga-token-018' > .env
-          docker compose up -d --build
-          BOOTLYGA_TOKEN=ci-bootlyga-token-018 node scripts/smoke.mjs
-          docker compose down
+      - run: npx playwright install --with-deps chromium
+      - run: make check

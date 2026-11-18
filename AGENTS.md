@@ -23,17 +23,19 @@ Sin cifras inventadas. Si el motor no ha contestado, se dice. No se pinta un por
 
 `DESIGN.md` fija tokens, fuentes y el uso del amarillo. El filtro antislop está en `third_party/antislop/` (MIT). Modo de este repo: during. Se aplica al escribir. Al terminar, se recorre la interfaz de verdad: vacío, error, reproducción, claro, oscuro, ancho de móvil.
 
-## Comprobaciones
+## Comprobaciones obligatorias antes de dar por hecho un cambio
+
+Regla dura para cualquier agente (Cursor, Grok, Composer u otro): **no se considera hecho un cambio hasta que `make check` pase en local**. No se empuja a `main`: siempre rama nueva y pull request.
+
+Ejecuta todo, en este orden, y deja el resultado en la descripción del PR. Si algo falla, se corrige la causa. No se desactiva un check ni se afloja la tolerancia para que pase.
 
 ```bash
-npm run check
-docker compose up --build
-BOOTLYGA_TOKEN=… node scripts/smoke.mjs
+make check
 ```
 
-`npm run check` es typecheck, tests y build. Si un test falla, se arregla la causa. No se relaja el test para que pase.
+`make check` encadena: typecheck, lint, tests unitarios (`npm test`), build, integración y extremo a extremo (Playwright con la PWA contra el gateway con el motor simulado en Docker: reproducción del stream y barrido de accesibilidad con axe). La integración HTTP usa `scripts/smoke.mjs` antes del navegador.
 
-Los tests de carga viven en `packages/gateway/test/load.test.ts` y hablan con el simulador. No hace falta el binario.
+Los tests de carga viven en `packages/gateway/test/load.test.ts` y hablan con el simulador en proceso. No hace falta el binario Acestream.
 
 ## Mapa
 

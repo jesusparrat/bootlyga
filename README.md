@@ -94,12 +94,12 @@ También se puede pegar un m3u propio. Solo entran líneas `acestream://` con 40
 ## Comprobaciones
 
 ```bash
-npm run check
+make check
 ```
 
-Eso es el typecheck, los tests y el build. Los tests de `packages/gateway/test/load.test.ts` cubren el issue de carga de iptv-player: cinco cambios de canal seguidos, dos espectadores en el mismo canal, tres canales a la vez y la caducidad por inactividad. Corren contra el simulador.
+Encadena typecheck, lint, tests, build, integración (`scripts/smoke.mjs`) y extremo a extremo con Playwright (reproducción y accesibilidad con axe). La pila de integración sube con Docker Compose; si el motor no alcanza al gateway en la red del contenedor, el script prueba la misma ruta en el host.
 
-`node scripts/smoke.mjs` hace lo mismo contra un gateway ya levantado.
+Los tests de `packages/gateway/test/load.test.ts` cubren el issue de carga de iptv-player: cinco cambios de canal seguidos, dos espectadores en el mismo canal, tres canales a la vez y la caducidad por inactividad. Corren contra el simulador.
 
 ## Decisiones
 
