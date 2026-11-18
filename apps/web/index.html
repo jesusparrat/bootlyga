@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#F4F4F2" />
+    <meta name="description" content="Reproductor de directos en casa. Los canales los añade quien lo usa." />
+    <title>Bootlyga</title>
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+  </head>
+  <body>
+    <a class="skip" href="#stage">Saltar al vídeo</a>
+    <header class="mast">
+      <div class="mast-id">
+        <p class="mark">
+          <span class="mark-cells" aria-hidden="true"><i></i><i></i><i class="flag"></i><i></i><i></i></span>
+          <span class="mark-name">Bootlyga</span>
+        </p>
+        <p class="mast-note">Reproductor en casa. El motor no sale de esta red.</p>
+      </div>
+      <div class="mast-tools">
+        <p id="engine" class="engine">Comprobando el motor</p>
+        <button type="button" id="theme">Pasar a oscuro</button>
+      </div>
+    </header>
+    <main>
+      <section class="desk" aria-labelledby="desk-title">
+        <div class="desk-top">
+          <h1 id="desk-title">Canales</h1>
+          <p id="boot" class="boot">Abriendo la mesa.</p>
+          <form id="gate" class="gate" hidden>
+            <label>Clave del gateway
+              <input name="token" type="password" autocomplete="current-password" required />
+            </label>
+            <button type="submit">Entrar</button>
+            <p id="gate-error" class="form-note" role="alert"></p>
+          </form>
+        </div>
+        <div id="app" hidden>
+          <label class="search">Buscar
+            <input id="search" type="search" autocomplete="off" />
+          </label>
+          <div id="groups" class="groups" aria-label="Grupos"></div>
+          <p id="empty" class="empty" hidden>No hay canales en este aparato. Añade el identificador que ya tengas.</p>
+          <p id="catalog-error" class="form-note" role="alert" hidden></p>
+          <ul id="channels" class="channels"></ul>
+          <form id="add" class="add">
+            <h2>Añadir un canal</h2>
+            <label>Nombre
+              <input name="name" required maxlength="80" autocomplete="off" />
+            </label>
+            <label>Grupo
+              <input name="group" maxlength="40" autocomplete="off" />
+            </label>
+            <label>Identificador
+              <input name="ace" required maxlength="80" spellcheck="false" autocapitalize="off" autocomplete="off" />
+            </label>
+            <label>Calidad
+              <select name="quality">
+                <option value="">sin marcar</option>
+                <option>SD</option>
+                <option>HD</option>
+                <option>FHD</option>
+                <option>4K</option>
+              </select>
+            </label>
+            <button type="submit">Añadir canal</button>
+            <p id="add-error" class="form-note" role="alert"></p>
+          </form>
+          <details class="import">
+            <summary>Importar una lista m3u</summary>
+            <form id="import-form">
+              <label>Lista
+                <textarea name="text" rows="6" spellcheck="false"></textarea>
+              </label>
+              <button type="submit">Incorporar lista</button>
+              <p id="import-result" class="form-note" role="status"></p>
+            </form>
+          </details>
+        </div>
+      </section>
+      <section class="stage" id="stage" aria-labelledby="stage-title">
+        <p class="kicker" id="stage-kicker">En espera</p>
+        <h2 id="stage-title">Elige un canal</h2>
+        <p class="clock" id="clock"></p>
+        <div class="frame">
+          <video id="video" controls playsinline width="1280" height="720"></video>
+        </div>
+        <p id="stage-status" class="stage-status" role="status"></p>
+        <button type="button" id="stop" disabled>Parar</button>
+      </section>
+    </main>
+    <footer>
+      <p>Bootlyga no incluye listas ni identificadores. La agenda, cuando llegue, mostrará las horas en Madrid.</p>
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+    <noscript><p class="noscript">Bootlyga necesita JavaScript para reproducir.</p></noscript>
+  </body>
+</html>

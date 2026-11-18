@@ -1,0 +1,9 @@
+{
+  "name": "@bootlyga/mock-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/server.js"
+  }
+}

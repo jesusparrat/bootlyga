@@ -1,0 +1,31 @@
+{
+  "name": "bootlyga",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/domain",
+    "packages/gateway",
+    "packages/mock-engine",
+    "apps/web"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p packages/domain && tsc -p packages/gateway && tsc -p packages/mock-engine && tsc -p apps/web",
+    "test": "node --import tsx --test packages/domain/test/*.test.ts packages/gateway/test/*.test.ts packages/mock-engine/test/*.test.ts",
+    "build": "npm run build -w @bootlyga/web && npm run build -w @bootlyga/gateway && npm run build -w @bootlyga/mock-engine",
+    "check": "npm run typecheck && npm test && npm run build",
+    "dev:mock": "tsx packages/mock-engine/src/index.ts",
+    "dev:gateway": "tsx packages/gateway/src/index.ts",
+    "dev:web": "npm run dev -w @bootlyga/web",
+    "smoke": "node scripts/smoke.mjs",
+    "stack": "docker compose up --build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.24.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,71 @@
+name: bootlyga
+
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: mock
+    image: bootlyga-mock-engine
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: "6878"
+      FIXTURES_DIR: /app/fixtures
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:6878/webui/api/service?method=get_version').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - bootlyga
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: gateway
+    image: bootlyga-gateway
+    restart: unless-stopped
+    depends_on:
+      engine:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8080"
+      BOOTLYGA_TOKEN: ${BOOTLYGA_TOKEN:?Define BOOTLYGA_TOKEN en .env}
+      ACE_BASE: http://engine:6878
+      MAX_P2P_SESSIONS: "5"
+      MAX_VIEWERS_PER_SESSION: "10"
+      SESSION_TTL_MS: "300000"
+      CATALOG_PATH: /data/catalog.json
+      WEB_ROOT: /app/public
+    volumes:
+      - catalog:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:8080/health/ready').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 8s
+    networks:
+      - bootlyga
+
+networks:
+  bootlyga:
+    driver: bridge
+
+volumes:
+  catalog:
