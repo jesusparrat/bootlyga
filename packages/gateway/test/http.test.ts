@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import path from "node:path";
 import { describe, it } from "node:test";
 import { emptyCatalog, parseCatalog } from "@bootlyga/domain";
 import { loadConfig } from "../src/config.ts";
+import { createEngine } from "../src/engine.ts";
+import { HttpError } from "../src/errors.ts";
 import { rewritePlaylist } from "../src/hls.ts";
-import { ace, headers, openSession, startStack, TOKEN } from "./stack.ts";
+import { ace, headers, openSession, startStack, stats, TOKEN } from "./stack.ts";
 
 describe("auth y cors", () => {
   it("rechaza la clave en la query y no abre sin cabecera", async () => {
@@ -53,6 +59,39 @@ describe("auth y cors", () => {
   it("un asterisco en la configuración no arranca", () => {
     assert.throws(() => loadConfig({ BOOTLYGA_TOKEN: "x", BOOTLYGA_CORS_ORIGINS: "*" }), /no admite/);
   });
+
+  it("el token de CI y los de ejemplo se rechazan en producción", () => {
+    assert.throws(
+      () => loadConfig({ NODE_ENV: "production", BOOTLYGA_TOKEN: "ci-bootlyga-token-018" }),
+      /ejemplo/,
+    );
+    const ok = loadConfig({ NODE_ENV: "production", BOOTLYGA_TOKEN: "clave-real-de-casa-123456" });
+    assert.equal(ok.token, "clave-real-de-casa-123456");
+  });
+
+  it("/health y /health/ready no exponen stats ni aceId sin autenticación", async () => {
+    const stack = await startStack();
+    try {
+      const id = ace("f");
+      const opened = await openSession(stack.base, id);
+      assert.equal(opened.response.status, 201);
+
+      for (const route of ["/health", "/health/ready"]) {
+        const response = await fetch(`${stack.base}${route}`);
+        assert.equal(response.status, 200);
+        const text = await response.text();
+        assert.equal(text.includes(id), false);
+        const body = JSON.parse(text) as Record<string, unknown>;
+        assert.equal("stats" in body, false);
+      }
+
+      const authStats = await stats(stack.base);
+      assert.equal(authStats.activeSessions, 1);
+      assert.equal(authStats.sessions[0]?.aceId, id);
+    } finally {
+      await stack.close();
+    }
+  });
 });
 
 describe("proxy", () => {
@@ -92,6 +131,52 @@ describe("proxy", () => {
     } finally {
       await stack.close();
     }
+  });
+
+  it("al apagar el gateway se paran las sesiones activas en el motor", async () => {
+    const stack = await startStack();
+    try {
+      await openSession(stack.base, ace("a"));
+      await openSession(stack.base, ace("b"));
+      assert.equal(stack.mock.snapshot().active.length, 2);
+
+      await stack.shutdown();
+
+      const snap = stack.mock.snapshot();
+      assert.equal(snap.active.length, 0);
+      assert.equal(snap.stops.length, 2);
+    } finally {
+      await stack.close();
+    }
+  });
+
+  it("engine.fetch corta con 504 si el motor no responde a tiempo", async () => {
+    const sockets = new Set<import("node:net").Socket>();
+    const slow = createServer((_req, _res) => {
+      // mantiene la petición colgada a propósito
+    });
+    slow.on("connection", (socket) => {
+      sockets.add(socket);
+      socket.on("close", () => sockets.delete(socket));
+    });
+    await new Promise<void>((resolve) => slow.listen(0, "127.0.0.1", resolve));
+    const port = (slow.address() as AddressInfo).port;
+    try {
+      const engine = createEngine(`http://127.0.0.1:${port}`, { fetchTimeoutMs: 80 });
+      await assert.rejects(
+        () => engine.fetch("/ace/c/slow/0.ts", {}),
+        (error: unknown) => error instanceof HttpError && error.status === 504,
+      );
+    } finally {
+      for (const socket of sockets) socket.destroy();
+      await new Promise<void>((resolve) => slow.close(() => resolve()));
+    }
+  });
+
+  it("e2e-stack.sh no sobrescribe .env ni fija el token de CI", async () => {
+    const script = await readFile(path.resolve(import.meta.dirname, "../../../scripts/e2e-stack.sh"), "utf8");
+    assert.equal(/>\s*\.env\b/.test(script), false);
+    assert.equal(script.includes("ci-bootlyga-token-018"), false);
   });
 });
 

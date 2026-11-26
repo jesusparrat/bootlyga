@@ -23,14 +23,21 @@ export type Engine = {
   probe(): Promise<{ ok: boolean; version: string | null }>;
 };
 
+const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
+
+export type EngineOptions = {
+  fetchTimeoutMs?: number;
+};
+
 /**
  * Cliente del HTTP API del motor.
  * Arranque con format=json y use_api_stop=1. Parada con command_url?method=stop.
  * Documentado en https://docs.acestream.media/developers/start-playback/
  * El navegador no recibe nunca estas URLs.
  */
-export function createEngine(aceBase: string): Engine {
+export function createEngine(aceBase: string, engineOpts: EngineOptions = {}): Engine {
   const origin = new URL(aceBase).origin;
+  const fetchTimeoutMs = engineOpts.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
 
   function localUrl(path: string): URL {
     if (!isSafeEnginePath(path.split("?")[0] ?? path)) {
@@ -88,14 +95,17 @@ export function createEngine(aceBase: string): Engine {
 
     async fetch(path, opts) {
       let current = localUrl(path);
+      const timeout = AbortSignal.timeout(fetchTimeoutMs);
+      const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout;
       for (let hop = 0; hop < 3; hop += 1) {
         const headers: Record<string, string> = {};
         if (opts.range) headers.range = opts.range;
         let response: Response;
         try {
-          response = await fetch(current, { redirect: "manual", signal: opts.signal, headers });
+          response = await fetch(current, { redirect: "manual", signal, headers });
         } catch (error) {
           if (opts.signal?.aborted) throw new HttpError(499, "Petición cancelada.");
+          if (timeout.aborted) throw new HttpError(504, "El motor ha tardado demasiado en responder.");
           throw error;
         }
         if (response.status >= 300 && response.status < 400) {
@@ -111,7 +121,15 @@ export function createEngine(aceBase: string): Engine {
         return {
           status: response.status,
           contentType: response.headers.get("content-type"),
-          text: () => response.text(),
+          text: async () => {
+            try {
+              return await response.text();
+            } catch (error) {
+              if (opts.signal?.aborted) throw new HttpError(499, "Petición cancelada.");
+              if (timeout.aborted) throw new HttpError(504, "El motor ha tardado demasiado en responder.");
+              throw error;
+            }
+          },
           stream: response.body,
         };
       }

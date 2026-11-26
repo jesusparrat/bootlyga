@@ -42,10 +42,9 @@ export async function startStack(opts: {
     mock,
     base: `http://127.0.0.1:${port}`,
     catalogPath,
+    shutdown: () => server.shutdown(),
     async close() {
-      await new Promise<void>((resolve, reject) => {
-        server.close((error) => (error ? reject(error) : resolve()));
-      });
+      await server.shutdown();
       await mock.close();
       await rm(dir, { recursive: true, force: true });
     },

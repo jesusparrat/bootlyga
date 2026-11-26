@@ -39,7 +39,7 @@ export type SessionManager = {
   forceStop(aceId: string): Promise<void>;
   touch(sessionId: string): Promise<LiveSession | null>;
   stats(): SessionStats;
-  dispose(): void;
+  dispose(): Promise<void>;
 };
 
 export function createSessions(opts: {
@@ -182,7 +182,28 @@ export function createSessions(opts: {
     },
 
     dispose() {
-      for (const session of byAce.values()) session.timer?.cancel();
+      return exclusive(async () => {
+        const active = [...byAce.values()];
+        byAce.clear();
+        bySession.clear();
+        for (const session of active) {
+          session.timer?.cancel();
+          session.controller.abort();
+        }
+        await Promise.allSettled(
+          active.map(async (session) => {
+            try {
+              await opts.engine.stop(session.handle);
+              log("info", "sesión parada al cerrar", { ace: session.aceId.slice(0, 6) });
+            } catch (error) {
+              log("warn", "no se pudo parar sesión al cerrar", {
+                ace: session.aceId.slice(0, 6),
+                message: error instanceof Error ? error.message : "error",
+              });
+            }
+          }),
+        );
+      });
     },
   };
 }
