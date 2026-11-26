@@ -1,6 +1,5 @@
 .PHONY: install lint typecheck test build integration e2e check
 
-BOOTLYGA_TOKEN ?= ci-bootlyga-token-018
 GATEWAY_URL ?= http://127.0.0.1:8080
 
 install:

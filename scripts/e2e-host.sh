@@ -3,7 +3,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
-token="${BOOTLYGA_TOKEN:-ci-bootlyga-token-018}"
+token="${BOOTLYGA_TOKEN:-$(node --input-type=module -e "import { randomBytes } from 'node:crypto'; console.log(randomBytes(24).toString('hex'))")}"
 gateway="${GATEWAY_URL:-http://127.0.0.1:8080}"
 tmpdir="$(mktemp -d)"
 catalog="$tmpdir/catalog.json"

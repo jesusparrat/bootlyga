@@ -1,4 +1,4 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { addChannel, CatalogError, importM3u, removeChannel } from "@bootlyga/domain";
@@ -22,7 +22,11 @@ export type AppDeps = {
   catalog?: CatalogStore;
 };
 
-export function createApp(config: Config, deps: AppDeps = {}) {
+export type AppServer = Server & {
+  shutdown(): Promise<void>;
+};
+
+export function createApp(config: Config, deps: AppDeps = {}): AppServer {
   const engine = deps.engine ?? createEngine(config.aceBase);
   const sessions = deps.sessions ?? createSessions({
     engine,
@@ -54,7 +58,15 @@ export function createApp(config: Config, deps: AppDeps = {}) {
     });
   });
 
-  server.on("close", () => sessions.dispose());
+  let shuttingDown: Promise<void> | null = null;
+  function disposeSessions(): Promise<void> {
+    if (!shuttingDown) shuttingDown = sessions.dispose();
+    return shuttingDown;
+  }
+
+  server.on("close", () => {
+    void disposeSessions();
+  });
 
   async function engineStatus() {
     const now = config.clock.now();
@@ -82,7 +94,6 @@ export function createApp(config: Config, deps: AppDeps = {}) {
       const body = {
         status: engineState.ok ? "ok" : "degraded",
         engine: engineState,
-        stats: sessions.stats(),
         ts: new Date().toISOString(),
       };
       if (url.pathname === "/health/ready") {
@@ -259,7 +270,17 @@ export function createApp(config: Config, deps: AppDeps = {}) {
     await pipeline(Readable.fromWeb(upstream.stream as never), res);
   }
 
-  return server;
+  return Object.assign(server, {
+    async shutdown() {
+      const closed = server.listening
+        ? new Promise<void>((resolve, reject) => {
+            server.close((error) => (error ? reject(error) : resolve()));
+            server.closeIdleConnections?.();
+          })
+        : Promise.resolve();
+      await Promise.all([disposeSessions(), closed]);
+    },
+  });
 }
 
 function security(res: ServerResponse) {

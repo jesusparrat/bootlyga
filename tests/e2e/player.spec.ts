@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const TOKEN = process.env.BOOTLYGA_TOKEN ?? "ci-bootlyga-token-018";
+const TOKEN = process.env.BOOTLYGA_TOKEN ?? "";
+if (!TOKEN) throw new Error("Falta BOOTLYGA_TOKEN");
 const ACE = "0123456789abcdef0123456789abcdef01234567";
 const CHANNEL = "Señal e2e";
 

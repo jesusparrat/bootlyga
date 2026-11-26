@@ -3,6 +3,7 @@ import { systemClock, type Clock } from "./clock.ts";
 const EXAMPLE_TOKENS = new Set([
   "cambia-esto-por-una-clave-larga",
   "changeme-dev-token",
+  "ci-bootlyga-token-018",
 ]);
 
 export type Config = {
