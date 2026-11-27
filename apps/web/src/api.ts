@@ -13,6 +13,18 @@ export type SessionResponse = {
   manifestUrl: string;
 };
 
+export type SessionTelemetry = {
+  status: string | null;
+  peers: number | null;
+  progress: number | null;
+  speedDown: number | null;
+};
+
+export type SessionStatResponse = {
+  available: boolean;
+  stat: SessionTelemetry | null;
+};
+
 type ChannelResponse = {
   catalog: Catalog;
 };
@@ -44,6 +56,8 @@ export function createApi(token: string) {
       send<ImportResponse>("/v1/import/m3u", { method: "POST", body: JSON.stringify({ text }) }),
     open: (aceId: string) =>
       send<SessionResponse>("/v1/sessions", { method: "POST", body: JSON.stringify({ aceId }) }),
+    sessionStat: (sessionId: string) =>
+      send<SessionStatResponse>(`/v1/sessions/${sessionId}/stat`),
     release: (aceId: string, playbackId: string) =>
       send<{ ok: boolean }>(`/v1/sessions/${aceId}`, {
         method: "DELETE",

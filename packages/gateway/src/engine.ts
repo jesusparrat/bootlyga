@@ -16,9 +16,17 @@ export type EngineResponse = {
   stream: ReadableStream<Uint8Array> | null;
 };
 
+export type SessionTelemetry = {
+  status: string | null;
+  peers: number | null;
+  progress: number | null;
+  speedDown: number | null;
+};
+
 export type Engine = {
   open(aceId: string): Promise<PlaybackHandle>;
   stop(handle: PlaybackHandle): Promise<void>;
+  stat(handle: PlaybackHandle): Promise<SessionTelemetry | null>;
   fetch(path: string, opts: { signal?: AbortSignal; range?: string | null }): Promise<EngineResponse>;
   probe(): Promise<{ ok: boolean; version: string | null }>;
 };
@@ -93,6 +101,25 @@ export function createEngine(aceBase: string, engineOpts: EngineOptions = {}): E
       }
     },
 
+    async stat(handle) {
+      if (!handle.statPath) return null;
+      try {
+        const response = await fetch(localUrl(handle.statPath), { signal: AbortSignal.timeout(3_000) });
+        if (!response.ok) return null;
+        const payload = (await response.json()) as { error?: unknown; response?: Record<string, unknown> };
+        if (payload.error || !payload.response) return null;
+        const body = payload.response;
+        return {
+          status: asString(body.status),
+          peers: asFiniteNumber(body.peers),
+          progress: asFiniteNumber(body.progress),
+          speedDown: asFiniteNumber(body.speed_down),
+        };
+      } catch {
+        return null;
+      }
+    },
+
     async fetch(path, opts) {
       let current = localUrl(path);
       const timeout = AbortSignal.timeout(fetchTimeoutMs);
@@ -160,4 +187,8 @@ function toEnginePath(value: string): string {
 
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function asFiniteNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }

@@ -178,6 +178,31 @@ describe("proxy", () => {
     assert.equal(/>\s*\.env\b/.test(script), false);
     assert.equal(script.includes("ci-bootlyga-token-018"), false);
   });
+
+  it("GET /v1/sessions/:id/stat exige auth y devuelve telemetría real del motor", async () => {
+    const stack = await startStack();
+    try {
+      const opened = await openSession(stack.base, ace("d"));
+      assert.equal(opened.response.status, 201);
+
+      const unauth = await fetch(`${stack.base}/v1/sessions/${opened.body.sessionId}/stat`);
+      assert.equal(unauth.status, 401);
+
+      const ok = await fetch(`${stack.base}/v1/sessions/${opened.body.sessionId}/stat`, { headers: headers() });
+      assert.equal(ok.status, 200);
+      const body = await ok.json() as { available: boolean; stat: { status: string; peers: number } | null };
+      assert.equal(body.available, true);
+      assert.equal(body.stat?.status, "dl");
+      assert.equal(body.stat?.peers, 1);
+
+      const missing = await fetch(`${stack.base}/v1/sessions/11111111-1111-4111-8111-111111111111/stat`, {
+        headers: headers(),
+      });
+      assert.equal(missing.status, 404);
+    } finally {
+      await stack.close();
+    }
+  });
 });
 
 describe("catálogo", () => {

@@ -18,80 +18,137 @@
           <span class="mark-cells" aria-hidden="true"><i></i><i></i><i class="flag"></i><i></i><i></i></span>
           <span class="mark-name">Bootlyga</span>
         </p>
-        <p class="mast-note">Reproductor en casa. El motor no sale de esta red.</p>
       </div>
       <div class="mast-tools">
         <p id="engine" class="engine">Comprobando el motor</p>
-        <button type="button" id="theme">Pasar a oscuro</button>
+        <div class="mast-actions">
+          <button type="button" id="settings-open" class="btn-outline" hidden>Ajustes</button>
+          <button type="button" id="theme" class="btn-outline">Pasar a oscuro</button>
+        </div>
       </div>
     </header>
+
     <main>
-      <section class="desk" aria-labelledby="desk-title">
-        <div class="desk-top">
-          <h1 id="desk-title">Canales</h1>
-          <p id="boot" class="boot">Abriendo la mesa.</p>
-          <form id="gate" class="gate" hidden>
-            <label>Clave del gateway
-              <input name="token" type="password" autocomplete="current-password" required />
-            </label>
-            <button type="submit">Entrar</button>
-            <p id="gate-error" class="form-note" role="alert"></p>
-          </form>
-        </div>
-        <div id="app" hidden>
+      <p id="boot" class="boot">Abriendo la mesa.</p>
+
+      <section id="gate-panel" class="gate-panel" aria-labelledby="gate-title" hidden>
+        <h1 id="gate-title">Entrar a Bootlyga</h1>
+        <p class="gate-note">Reproductor en casa. El motor no sale de esta red.</p>
+        <form id="gate" class="gate">
+          <label>Clave del gateway
+            <input name="token" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" class="btn-solid">Entrar</button>
+          <p id="gate-error" class="form-note" role="alert"></p>
+        </form>
+      </section>
+
+      <div id="app" class="player-shell" hidden>
+        <section class="stage" id="stage" aria-labelledby="stage-title">
+          <div class="stage-head">
+            <div class="stage-heading">
+              <p class="kicker" id="stage-kicker">En espera</p>
+              <h1 id="stage-title">Elige un canal</h1>
+            </div>
+            <p class="clock" id="clock"></p>
+          </div>
+
+          <div class="frame" id="stage-frame">
+            <video id="video" controls playsinline width="1280" height="720"></video>
+            <div id="stage-overlay" class="stage-overlay" data-phase="idle">
+              <p id="overlay-kicker" class="overlay-kicker">En espera</p>
+              <p id="overlay-title" class="overlay-title">Elige un canal</p>
+              <p id="overlay-detail" class="overlay-detail">Selecciona un canal de la lista para abrir el directo.</p>
+              <div class="overlay-actions">
+                <button type="button" id="overlay-settings" class="btn-overlay" hidden>Añadir o importar canales</button>
+                <button type="button" id="overlay-retry" class="btn-overlay" hidden>Reintentar</button>
+                <button type="button" id="overlay-next-source" class="btn-overlay-outline" hidden>Probar siguiente fuente</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stage-bar">
+            <p id="stage-status" class="stage-status" role="status"></p>
+            <div class="stage-actions">
+              <button type="button" id="fullscreen" class="btn-outline">Pantalla completa</button>
+              <button type="button" id="stop" class="btn-solid" disabled>Parar</button>
+            </div>
+          </div>
+
+          <div id="sources-wrap" class="sources-wrap" hidden>
+            <span class="sources-label" id="sources-label">Fuentes del canal</span>
+            <div id="sources" class="sources" role="group" aria-labelledby="sources-label"></div>
+          </div>
+        </section>
+
+        <section class="desk" aria-labelledby="desk-title">
+          <div class="desk-top">
+            <h2 id="desk-title">Canales</h2>
+            <p id="channel-count" class="channel-count"></p>
+          </div>
           <label class="search">Buscar
             <input id="search" type="search" autocomplete="off" />
           </label>
           <div id="groups" class="groups" aria-label="Grupos"></div>
-          <p id="empty" class="empty" hidden>No hay canales en este aparato. Añade el identificador que ya tengas.</p>
+          <p id="empty" class="empty" hidden>No hay canales en este aparato. Ábrelos desde Ajustes.</p>
           <p id="catalog-error" class="form-note" role="alert" hidden></p>
           <ul id="channels" class="channels"></ul>
-          <form id="add" class="add">
-            <h2>Añadir un canal</h2>
-            <label>Nombre
-              <input name="name" required maxlength="80" autocomplete="off" />
-            </label>
-            <label>Grupo
-              <input name="group" maxlength="40" autocomplete="off" />
-            </label>
-            <label>Identificador
-              <input name="ace" required maxlength="80" spellcheck="false" autocapitalize="off" autocomplete="off" />
-            </label>
-            <label>Calidad
-              <select name="quality">
-                <option value="">sin marcar</option>
-                <option>SD</option>
-                <option>HD</option>
-                <option>FHD</option>
-                <option>4K</option>
-              </select>
-            </label>
-            <button type="submit">Añadir canal</button>
-            <p id="add-error" class="form-note" role="alert"></p>
-          </form>
-          <details class="import">
-            <summary>Importar una lista m3u</summary>
-            <form id="import-form">
-              <label>Lista
-                <textarea name="text" rows="6" spellcheck="false"></textarea>
-              </label>
-              <button type="submit">Incorporar lista</button>
-              <p id="import-result" class="form-note" role="status"></p>
-            </form>
-          </details>
-        </div>
-      </section>
-      <section class="stage" id="stage" aria-labelledby="stage-title">
-        <p class="kicker" id="stage-kicker">En espera</p>
-        <h2 id="stage-title">Elige un canal</h2>
-        <p class="clock" id="clock"></p>
-        <div class="frame">
-          <video id="video" controls playsinline width="1280" height="720"></video>
-        </div>
-        <p id="stage-status" class="stage-status" role="status"></p>
-        <button type="button" id="stop" disabled>Parar</button>
-      </section>
+        </section>
+      </div>
     </main>
+
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+      <div class="settings-head">
+        <h2 id="settings-title">Ajustes y canales</h2>
+        <button type="button" id="settings-close" class="btn-outline">Cerrar</button>
+      </div>
+      <div class="settings-body">
+        <form id="add" class="add">
+          <h3>Añadir un canal</h3>
+          <label>Nombre
+            <input name="name" required maxlength="80" autocomplete="off" />
+          </label>
+          <label>Grupo
+            <input name="group" maxlength="40" autocomplete="off" />
+          </label>
+          <label>Identificador
+            <input name="ace" required maxlength="80" spellcheck="false" autocapitalize="off" autocomplete="off" />
+          </label>
+          <label>Calidad
+            <select name="quality">
+              <option value="">sin marcar</option>
+              <option>SD</option>
+              <option>HD</option>
+              <option>FHD</option>
+              <option>4K</option>
+            </select>
+          </label>
+          <button type="submit" class="btn-solid">Añadir canal</button>
+          <p id="add-error" class="form-note" role="alert"></p>
+        </form>
+
+        <section class="import-section" aria-labelledby="import-title">
+          <h3 id="import-title">Importar una lista m3u</h3>
+          <label class="file-pick">Cargar archivo .m3u
+            <input id="import-file" type="file" accept=".m3u,.m3u8,text/plain" />
+          </label>
+          <form id="import-form" class="import-form">
+            <label>O pega el texto de la lista
+              <textarea name="text" rows="5" spellcheck="false"></textarea>
+            </label>
+            <button type="submit" class="btn-solid">Incorporar lista</button>
+            <p id="import-result" class="form-note" role="status"></p>
+          </form>
+        </section>
+
+        <section class="session-section" aria-labelledby="session-title">
+          <h3 id="session-title">Sesión</h3>
+          <p class="session-note">La clave se guarda solo en esta pestaña mientras sigas dentro.</p>
+          <button type="button" id="logout" class="btn-outline">Cambiar clave</button>
+        </section>
+      </div>
+    </dialog>
+
     <footer>
       <p>Bootlyga no incluye listas ni identificadores. La agenda, cuando llegue, mostrará las horas en Madrid.</p>
     </footer>
