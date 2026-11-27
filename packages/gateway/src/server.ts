@@ -2,7 +2,13 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { addChannel, CatalogError, importM3u, removeChannel } from "@bootlyga/domain";
-import { checkAuth, queryCarriesToken } from "./auth.ts";
+import {
+  checkAuth,
+  clearHlsSetCookie,
+  createHlsCookieSigner,
+  formatHlsSetCookie,
+  queryCarriesToken,
+} from "./auth.ts";
 import { createCatalogStore, type CatalogStore } from "./catalogStore.ts";
 import type { Config } from "./config.ts";
 import { applyCors } from "./cors.ts";
@@ -36,6 +42,7 @@ export function createApp(config: Config, deps: AppDeps = {}): AppServer {
     ttlMs: config.ttlMs,
   });
   const catalog = deps.catalog ?? createCatalogStore(config.catalogPath);
+  const hlsCookies = createHlsCookieSigner(config.token);
   let probeAt = Number.NEGATIVE_INFINITY;
   let probeValue = { ok: false, version: null as string | null };
 
@@ -106,7 +113,10 @@ export function createApp(config: Config, deps: AppDeps = {}): AppServer {
 
     if (url.pathname.startsWith("/v1/")) {
       const auth = checkAuth(req.headers.authorization, config.token);
-      if (!auth.ok) {
+      const hlsAllowed = !auth.ok
+        && isHlsReadRequest(req.method, url.pathname)
+        && hlsCookies.verify(headerOne(req.headers.cookie) ?? undefined, config.clock.now());
+      if (!auth.ok && !hlsAllowed) {
         sendJson(res, auth.status, { error: auth.error });
         return;
       }
@@ -160,7 +170,17 @@ export function createApp(config: Config, deps: AppDeps = {}): AppServer {
       const body = await readJson(req);
       const aceId = firstString(body.aceId, body.acestreamId);
       const session = await sessions.open(aceId);
+      const cookie = formatHlsSetCookie(
+        hlsCookies.issue(config.clock.now(), config.hlsCookieTtlSec),
+        { maxAge: config.hlsCookieTtlSec, secure: useSecureCookie(req, config.secureCookie) },
+      );
+      res.setHeader("set-cookie", cookie);
       sendJson(res, 201, session);
+      return true;
+    }
+    if (req.method === "DELETE" && url.pathname === "/v1/hls/auth") {
+      res.setHeader("set-cookie", clearHlsSetCookie(useSecureCookie(req, config.secureCookie)));
+      sendJson(res, 200, { ok: true });
       return true;
     }
 
@@ -283,10 +303,14 @@ export function createApp(config: Config, deps: AppDeps = {}): AppServer {
       res.end(body);
       return;
     }
-    res.writeHead(upstream.status, {
+    const responseHeaders: Record<string, string> = {
       "content-type": type || "application/octet-stream",
       "cache-control": "no-store",
-    });
+    };
+    if (upstream.contentLength) responseHeaders["content-length"] = upstream.contentLength;
+    if (upstream.contentRange) responseHeaders["content-range"] = upstream.contentRange;
+    if (upstream.acceptRanges) responseHeaders["accept-ranges"] = upstream.acceptRanges;
+    res.writeHead(upstream.status, responseHeaders);
     if (!upstream.stream) {
       res.end();
       return;
@@ -405,4 +429,19 @@ function clientGone(res: ServerResponse): AbortSignal {
     if (!res.writableEnded) controller.abort();
   });
   return controller.signal;
+}
+
+function isHlsReadRequest(method: string | undefined, pathname: string): boolean {
+  if (method !== "GET") return false;
+  return /^\/v1\/hls\/[^/]+\/(index\.m3u8|media)$/.test(pathname);
+}
+
+function useSecureCookie(req: IncomingMessage, mode: Config["secureCookie"]): boolean {
+  if (mode === "true") return true;
+  if (mode === "false") return false;
+  if ((req.socket as { encrypted?: boolean }).encrypted) return true;
+  const forwarded = headerOne(req.headers["x-forwarded-proto"]);
+  if (!forwarded) return false;
+  const first = forwarded.split(",")[0]?.trim().toLowerCase();
+  return first === "https";
 }

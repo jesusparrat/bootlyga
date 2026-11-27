@@ -36,6 +36,7 @@ const stageOverlay = must<HTMLElement>("#stage-overlay");
 const overlayKicker = must<HTMLElement>("#overlay-kicker");
 const overlayTitle = must<HTMLElement>("#overlay-title");
 const overlayDetail = must<HTMLElement>("#overlay-detail");
+const overlayPlay = must<HTMLButtonElement>("#overlay-play");
 const overlaySettings = must<HTMLButtonElement>("#overlay-settings");
 const overlayRetry = must<HTMLButtonElement>("#overlay-retry");
 const overlayNextSource = must<HTMLButtonElement>("#overlay-next-source");
@@ -99,14 +100,17 @@ settingsDialog.addEventListener("click", (event) => {
 logoutButton.addEventListener("click", () => {
   closeSettings();
   sessionStorage.removeItem(TOKEN_KEY);
-  void player?.destroy().then(() => {
-    player = null;
-    api = null;
-    activeChannelId = null;
-    activeSourceId = null;
-    playerState = { phase: "idle", message: "", telemetry: null };
-    showGate();
-  });
+  const currentApi = api;
+  void (currentApi ? currentApi.clearHlsAuth().catch(() => undefined) : Promise.resolve())
+    .then(() => player?.destroy())
+    .then(() => {
+      player = null;
+      api = null;
+      activeChannelId = null;
+      activeSourceId = null;
+      playerState = { phase: "idle", message: "", telemetry: null };
+      showGate();
+    });
 });
 
 gate.addEventListener("submit", (event) => {
@@ -179,6 +183,10 @@ fullscreenButton.addEventListener("click", () => {
 });
 
 document.addEventListener("fullscreenchange", syncFullscreenButton);
+
+overlayPlay.addEventListener("click", () => {
+  void player?.resume();
+});
 
 overlayRetry.addEventListener("click", () => {
   const pair = activeSelection();
@@ -393,6 +401,7 @@ function renderStage() {
     overlayDetail.textContent = hasChannels
       ? "Selecciona un canal de la lista para abrir el directo."
       : "Abre Ajustes para añadir un identificador o importar tu lista m3u.";
+    overlayPlay.hidden = true;
     overlaySettings.hidden = hasChannels;
     overlayRetry.hidden = true;
     overlayNextSource.hidden = true;
@@ -406,6 +415,7 @@ function renderStage() {
 
   stageTitle.textContent = channel.name;
   overlaySettings.hidden = true;
+  overlayPlay.hidden = true;
 
   if (phase === "connecting") {
     stageKicker.textContent = "Buscando pares";
@@ -414,6 +424,17 @@ function renderStage() {
     overlayKicker.textContent = "Buscando pares";
     overlayTitle.textContent = channel.name;
     overlayDetail.textContent = telemetryLine || playerState.message || "El motor está buscando pares.";
+    overlayRetry.hidden = true;
+    overlayNextSource.hidden = sources.length <= 1;
+  } else if (phase === "ready") {
+    stageKicker.textContent = "Señal lista";
+    stageStatus.textContent = telemetryLine
+      ? `${sourceTag} · ${telemetryLine}`
+      : `${sourceTag} · ${playerState.message || "Pulsa para reproducir."}`;
+    overlayKicker.textContent = "Señal lista";
+    overlayTitle.textContent = channel.name;
+    overlayDetail.textContent = playerState.message || "Pulsa para empezar la reproducción.";
+    overlayPlay.hidden = false;
     overlayRetry.hidden = true;
     overlayNextSource.hidden = sources.length <= 1;
   } else if (phase === "playing") {

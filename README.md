@@ -71,7 +71,7 @@ Los puertos P2P del motor (8621) no se publican. El motor sale a buscar pares. P
 
 La clave va en `Authorization: Bearer`. Si llega en la query (`token`, `access_token`, `api_key`) la respuesta es 400, aunque la cabecera sea correcta. Así no acaba en historiales ni en registros de un proxy.
 
-La PWA guarda la clave en `sessionStorage` y hls.js la pone en cada petición del manifiesto y de los segmentos. Safari en el iPhone no puede hacer eso con el HLS nativo: es un hueco conocido, no un atajo con la clave en la URL.
+La PWA guarda la clave en `sessionStorage` y `hls.js` la pone en cada petición del manifiesto y de los segmentos en escritorio y Android. En iPhone y Safari (HLS nativo sin `MediaSource` estándar), `POST /v1/sessions` emite además una cookie `HttpOnly` firmada (`bootlyga_hls`, `SameSite=Lax`, `Path=/v1/hls/`) que solo autoriza lecturas `GET /v1/hls/...` y nunca los endpoints de catálogo, estadísticas o gestión. El flag `Secure` se controla con `BOOTLYGA_SECURE_COOKIE=auto|true|false` (`auto` por defecto, detectando HTTPS y `X-Forwarded-Proto: https` de `tailscale serve`). La clave nunca viaja en la URL.
 
 CORS no lleva `*`. Si `BOOTLYGA_CORS_ORIGINS` está vacío, no se envía `Access-Control-Allow-Origin`. La PWA se sirve desde el propio gateway y no lo necesita. Un `*` en la variable impide arrancar.
 

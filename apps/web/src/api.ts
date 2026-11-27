@@ -40,7 +40,7 @@ export function createApi(token: string) {
     const headers = new Headers(init?.headers);
     headers.set("authorization", `Bearer ${token}`);
     if (init?.body) headers.set("content-type", "application/json");
-    const response = await fetch(path, { ...init, headers });
+    const response = await fetch(path, { ...init, headers, credentials: "same-origin" });
     const text = await response.text();
     const data = text ? JSON.parse(text) as { error?: string } : {};
     if (!response.ok) throw new ApiError(data.error ?? "La petición ha fallado.", response.status);
@@ -56,6 +56,8 @@ export function createApi(token: string) {
       send<ImportResponse>("/v1/import/m3u", { method: "POST", body: JSON.stringify({ text }) }),
     open: (aceId: string) =>
       send<SessionResponse>("/v1/sessions", { method: "POST", body: JSON.stringify({ aceId }) }),
+    clearHlsAuth: () =>
+      send<{ ok: boolean }>("/v1/hls/auth", { method: "DELETE" }),
     sessionStat: (sessionId: string) =>
       send<SessionStatResponse>(`/v1/sessions/${sessionId}/stat`),
     release: (aceId: string, playbackId: string) =>

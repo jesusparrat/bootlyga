@@ -54,12 +54,13 @@
           </div>
 
           <div class="frame" id="stage-frame">
-            <video id="video" controls playsinline width="1280" height="720"></video>
+            <video id="video" controls playsinline webkit-playsinline width="1280" height="720"></video>
             <div id="stage-overlay" class="stage-overlay" data-phase="idle">
               <p id="overlay-kicker" class="overlay-kicker">En espera</p>
               <p id="overlay-title" class="overlay-title">Elige un canal</p>
               <p id="overlay-detail" class="overlay-detail">Selecciona un canal de la lista para abrir el directo.</p>
               <div class="overlay-actions">
+                <button type="button" id="overlay-play" class="btn-overlay" hidden>Reproducir ahora</button>
                 <button type="button" id="overlay-settings" class="btn-overlay" hidden>Añadir o importar canales</button>
                 <button type="button" id="overlay-retry" class="btn-overlay" hidden>Reintentar</button>
                 <button type="button" id="overlay-next-source" class="btn-overlay-outline" hidden>Probar siguiente fuente</button>

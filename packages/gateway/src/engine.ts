@@ -12,6 +12,9 @@ export type PlaybackHandle = {
 export type EngineResponse = {
   status: number;
   contentType: string | null;
+  contentLength: string | null;
+  contentRange: string | null;
+  acceptRanges: string | null;
   text: () => Promise<string>;
   stream: ReadableStream<Uint8Array> | null;
 };
@@ -148,6 +151,9 @@ export function createEngine(aceBase: string, engineOpts: EngineOptions = {}): E
         return {
           status: response.status,
           contentType: response.headers.get("content-type"),
+          contentLength: response.headers.get("content-length"),
+          contentRange: response.headers.get("content-range"),
+          acceptRanges: response.headers.get("accept-ranges"),
           text: async () => {
             try {
               return await response.text();
