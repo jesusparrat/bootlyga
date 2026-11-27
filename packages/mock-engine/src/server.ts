@@ -98,9 +98,28 @@ export function createMock(opts: { fixturesDir?: string } = {}) {
       }
       const index = Number(segment[2]) % 2;
       const body = segments[index] ?? segments[0];
+      const rangeHeader = typeof req.headers.range === "string" ? req.headers.range : "";
+      const rangeMatch = /^bytes=(\d+)-(\d*)$/.exec(rangeHeader.trim());
+      if (rangeMatch) {
+        const start = Number(rangeMatch[1]);
+        const end = rangeMatch[2] ? Math.min(Number(rangeMatch[2]), body.length - 1) : body.length - 1;
+        if (start < body.length && start <= end) {
+          const slice = body.subarray(start, end + 1);
+          res.writeHead(206, {
+            "content-type": "video/mp2t",
+            "content-length": slice.length,
+            "content-range": `bytes ${start}-${end}/${body.length}`,
+            "accept-ranges": "bytes",
+            "cache-control": "no-store",
+          });
+          res.end(slice);
+          return;
+        }
+      }
       res.writeHead(200, {
         "content-type": "video/mp2t",
         "content-length": body.length,
+        "accept-ranges": "bytes",
         "cache-control": "no-store",
       });
       res.end(body);

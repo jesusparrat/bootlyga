@@ -35,19 +35,28 @@ const opened = await fetch(`${base}/v1/sessions`, {
   body: JSON.stringify({ aceId }),
 });
 if (!opened.ok) throw new Error(await opened.text());
+const setCookie = opened.headers.get("set-cookie") ?? "";
+if (!setCookie.includes("bootlyga_hls=") || !setCookie.includes("HttpOnly")) {
+  throw new Error("falta cookie HttpOnly de reproducción HLS");
+}
+const hlsCookie = setCookie.split(";")[0];
 const session = await opened.json();
 if (!String(session.manifestUrl).startsWith("/v1/hls/")) throw new Error("manifiesto fuera del gateway");
 if (JSON.stringify(session).includes("6878")) throw new Error("url de motor filtrada");
 
-const manifest = await fetch(base + session.manifestUrl, { headers: { authorization: `Bearer ${token}` } });
+const manifest = await fetch(base + session.manifestUrl, { headers: { cookie: hlsCookie } });
 const playlist = await manifest.text();
 if (manifest.status !== 200 || !playlist.includes("#EXTM3U")) throw new Error(playlist);
 if (playlist.includes("6878")) throw new Error("playlist sin reescribir");
 const media = playlist.split("\n").find((line) => line.startsWith("/v1/hls/"));
 if (!media) throw new Error("sin segmento");
-const segment = await fetch(base + media, { headers: { authorization: `Bearer ${token}` } });
+const segment = await fetch(base + media, { headers: { cookie: hlsCookie, range: "bytes=0-187" } });
+if (segment.status !== 206) throw new Error(`se esperaba 206 para Range y fue ${segment.status}`);
 const bytes = new Uint8Array(await segment.arrayBuffer());
 if (bytes[0] !== 0x47) throw new Error("el segmento no es MPEG-TS");
+
+const cookieOnlyStats = await fetch(`${base}/v1/stats`, { headers: { cookie: hlsCookie } });
+if (cookieOnlyStats.status !== 401) throw new Error("la cookie HLS no debe abrir /v1/stats");
 
 const released = await fetch(`${base}/v1/sessions/${aceId}`, {
   method: "DELETE",

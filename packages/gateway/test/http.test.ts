@@ -203,6 +203,96 @@ describe("proxy", () => {
       await stack.close();
     }
   });
+
+  it("cookie HLS HttpOnly autoriza solo GET /v1/hls/..., respeta Secure y Range/206, y caduca", async () => {
+    assert.throws(
+      () => loadConfig({ BOOTLYGA_TOKEN: "x", BOOTLYGA_SECURE_COOKIE: "siempre" }),
+      /BOOTLYGA_SECURE_COOKIE/,
+    );
+
+    const stack = await startStack({ hlsCookieTtlSec: 60 });
+    try {
+      const id = ace("e");
+      const opened = await fetch(`${stack.base}/v1/sessions`, {
+        method: "POST",
+        headers: headers({
+          "content-type": "application/json",
+          "x-forwarded-proto": "https",
+        }),
+        body: JSON.stringify({ aceId: id }),
+      });
+      assert.equal(opened.status, 201);
+      const setCookie = opened.headers.get("set-cookie") ?? "";
+      assert.equal(setCookie.includes("bootlyga_hls="), true);
+      assert.equal(setCookie.includes("HttpOnly"), true);
+      assert.equal(setCookie.includes("SameSite=Lax"), true);
+      assert.equal(setCookie.includes("Path=/v1/hls/"), true);
+      assert.equal(setCookie.includes("Secure"), true);
+      assert.equal(setCookie.includes(TOKEN), false);
+
+      const cookiePair = setCookie.split(";")[0] ?? "";
+      const session = await opened.json() as { sessionId: string; playbackId: string; manifestUrl: string };
+
+      const manifest = await fetch(`${stack.base}${session.manifestUrl}`, { headers: { cookie: cookiePair } });
+      assert.equal(manifest.status, 200);
+      const playlist = await manifest.text();
+      assert.equal(playlist.includes("#EXTM3U"), true);
+      const media = playlist.split("\n").find((line) => line.startsWith("/v1/hls/"));
+      assert.ok(media);
+
+      const partial = await fetch(`${stack.base}${media}`, {
+        headers: { cookie: cookiePair, range: "bytes=0-187" },
+      });
+      assert.equal(partial.status, 206);
+      assert.equal(partial.headers.get("content-length"), "188");
+      assert.equal(partial.headers.get("accept-ranges"), "bytes");
+      assert.match(partial.headers.get("content-range") ?? "", /^bytes 0-187\/\d+$/);
+      const bytes = new Uint8Array(await partial.arrayBuffer());
+      assert.equal(bytes.length, 188);
+      assert.equal(bytes[0], 0x47);
+
+      const leaked = await fetch(`${stack.base}${session.manifestUrl}?token=${TOKEN}`, {
+        headers: { cookie: cookiePair },
+      });
+      assert.equal(leaked.status, 400);
+
+      for (const [method, urlPath] of [
+        ["GET", "/v1/catalog"],
+        ["GET", "/v1/stats"],
+        ["GET", `/v1/sessions/${session.sessionId}/stat`],
+        ["POST", "/v1/sessions"],
+        ["DELETE", `/v1/sessions/${id}`],
+      ] as const) {
+        const denied = await fetch(`${stack.base}${urlPath}`, {
+          method,
+          headers: { cookie: cookiePair },
+        });
+        assert.equal(denied.status, 401, `${method} ${urlPath} no debe aceptar la cookie HLS`);
+      }
+
+      const tampered = await fetch(`${stack.base}${session.manifestUrl}`, {
+        headers: { cookie: `${cookiePair}x` },
+      });
+      assert.equal(tampered.status, 401);
+
+      await stack.clock.advance(61_000);
+      const expired = await fetch(`${stack.base}${session.manifestUrl}`, {
+        headers: { cookie: cookiePair },
+      });
+      assert.equal(expired.status, 401);
+
+      const cleared = await fetch(`${stack.base}/v1/hls/auth`, {
+        method: "DELETE",
+        headers: headers(),
+      });
+      assert.equal(cleared.status, 200);
+      const clearHeader = cleared.headers.get("set-cookie") ?? "";
+      assert.equal(clearHeader.includes("Max-Age=0"), true);
+      assert.equal(clearHeader.includes("Secure"), false);
+    } finally {
+      await stack.close();
+    }
+  });
 });
 
 describe("catálogo", () => {

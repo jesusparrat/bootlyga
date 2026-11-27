@@ -16,6 +16,8 @@ export function ace(char: string): string {
 
 export async function startStack(opts: {
   ttlMs?: number;
+  hlsCookieTtlSec?: number;
+  secureCookie?: "auto" | "true" | "false";
   maxSessions?: number;
   maxViewers?: number;
   origins?: string;
@@ -29,6 +31,8 @@ export async function startStack(opts: {
     ACE_BASE: mock.url,
     CATALOG_PATH: catalogPath,
     SESSION_TTL_MS: String(opts.ttlMs ?? 300_000),
+    HLS_COOKIE_TTL_SEC: String(opts.hlsCookieTtlSec ?? 14_400),
+    BOOTLYGA_SECURE_COOKIE: opts.secureCookie ?? "auto",
     MAX_P2P_SESSIONS: String(opts.maxSessions ?? 5),
     MAX_VIEWERS_PER_SESSION: String(opts.maxViewers ?? 10),
     BOOTLYGA_CORS_ORIGINS: opts.origins ?? "",

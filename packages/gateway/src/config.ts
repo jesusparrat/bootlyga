@@ -6,6 +6,8 @@ const EXAMPLE_TOKENS = new Set([
   "ci-bootlyga-token-018",
 ]);
 
+export type SecureCookieMode = "auto" | "true" | "false";
+
 export type Config = {
   host: string;
   port: number;
@@ -14,6 +16,8 @@ export type Config = {
   maxSessions: number;
   maxViewers: number;
   ttlMs: number;
+  hlsCookieTtlSec: number;
+  secureCookie: SecureCookieMode;
   corsOrigins: string[];
   webRoot: string | null;
   catalogPath: string;
@@ -53,12 +57,21 @@ export function loadConfig(env: NodeJS.ProcessEnv, clock: Clock = systemClock())
     maxSessions: positive(env.MAX_P2P_SESSIONS, 5),
     maxViewers: positive(env.MAX_VIEWERS_PER_SESSION, 10),
     ttlMs: positive(env.SESSION_TTL_MS, 300_000),
+    hlsCookieTtlSec: positive(env.HLS_COOKIE_TTL_SEC, 14_400),
+    secureCookie: parseSecureCookie(env.BOOTLYGA_SECURE_COOKIE),
     corsOrigins,
     webRoot: env.WEB_ROOT ? env.WEB_ROOT : null,
     catalogPath: env.CATALOG_PATH ?? "data/catalog.json",
     nodeEnv,
     clock,
   };
+}
+
+function parseSecureCookie(value: string | undefined): SecureCookieMode {
+  if (value == null || value === "") return "auto";
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "auto" || normalized === "true" || normalized === "false") return normalized;
+  throw new Error("BOOTLYGA_SECURE_COOKIE solo admite auto, true o false.");
 }
 
 function positive(value: string | undefined, fallback: number): number {
