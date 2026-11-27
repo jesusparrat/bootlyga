@@ -175,6 +175,16 @@ export function createApp(config: Config, deps: AppDeps = {}): AppServer {
       return true;
     }
 
+    const sessionStat = /^\/v1\/sessions\/([^/]+)\/stat$/.exec(url.pathname);
+    if (req.method === "GET" && sessionStat?.[1]) {
+      if (!isUuid(sessionStat[1])) throw new HttpError(404, "No hay esa sesión.");
+      const session = sessions.get(sessionStat[1]);
+      if (!session) throw new HttpError(404, "No hay esa sesión.");
+      const stat = await engine.stat(session.handle);
+      sendJson(res, 200, { available: stat !== null, stat });
+      return true;
+    }
+
     const force = /^\/v1\/sessions\/([^/]+)\/force$/.exec(url.pathname);
     if (req.method === "DELETE" && force?.[1]) {
       await sessions.forceStop(decodeURIComponent(force[1]));
@@ -209,9 +219,23 @@ export function createApp(config: Config, deps: AppDeps = {}): AppServer {
   async function proxyManifest(res: ServerResponse, sessionId: string) {
     const session = await sessions.touch(sessionId);
     if (!session) throw new HttpError(404, "No hay esa sesión.");
-    const upstream = await engine.fetch(session.handle.playbackPath, {
-      signal: AbortSignal.any([session.controller.signal, clientGone(res)]),
-    });
+    let upstream;
+    try {
+      upstream = await engine.fetch(session.handle.playbackPath, {
+        signal: AbortSignal.any([session.controller.signal, clientGone(res)]),
+      });
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 504) {
+        res.writeHead(503, {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store",
+          "retry-after": "1",
+        });
+        res.end("buscando pares");
+        return;
+      }
+      throw error;
+    }
     const text = await upstream.text();
     if (upstream.status !== 200 || !text.includes("#EXTM3U")) {
       res.writeHead(503, {

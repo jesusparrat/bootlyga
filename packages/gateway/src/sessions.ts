@@ -37,6 +37,7 @@ export type SessionManager = {
   open(aceId: string): Promise<PublicSession>;
   release(aceId: string, playbackId: string): Promise<void>;
   forceStop(aceId: string): Promise<void>;
+  get(sessionId: string): LiveSession | null;
   touch(sessionId: string): Promise<LiveSession | null>;
   stats(): SessionStats;
   dispose(): Promise<void>;
@@ -156,6 +157,10 @@ export function createSessions(opts: {
         if (!session) return;
         await halt(session);
       });
+    },
+
+    get(sessionId) {
+      return bySession.get(sessionId) ?? null;
     },
 
     touch(sessionId) {

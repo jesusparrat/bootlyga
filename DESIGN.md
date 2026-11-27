@@ -4,7 +4,7 @@ Hereda el sistema aprobado en ensemblitz (papel, Archivo, IBM Plex Mono, Doto, u
 
 ## Lectura
 
-Es la mesa del salón un domingo por la noche, en Madrid: una lista de canales a la izquierda y la imagen a la derecha. Energía media, ritmo en dos columnas desiguales, movimiento corto al pulsar. Si se quita el nombre, se reconoce por la marca de cinco casillas (la del centro, amarilla y más alta) y por el marco del vídeo con sombra dura.
+Es la mesa del salón un domingo por la noche, en Madrid: el vídeo manda a la izquierda y la lista de canales acompaña a la derecha. Energía media, ritmo en dos columnas desiguales, movimiento corto al pulsar. Si se quita el nombre, se reconoce por la marca de cinco casillas (la del centro, amarilla y más alta) y por el marco del vídeo con sombra dura.
 
 ## Tokens
 
@@ -33,21 +33,23 @@ Claro por defecto. `prefers-color-scheme` se respeta hasta que la persona pulsa 
 | Motor, hora pequeña, calidad, avisos | IBM Plex Mono | Cifras y estados, no titulares. |
 | Reloj de Madrid | Doto, 44 px | Solo la hora. Lleva `aria-label` con la misma hora. |
 
-Sin versalitas y sin tracking ancho. El nombre usa `clamp` entre 40 y 72 px, no el titular de 164 px de la jornada de ensemblitz: aquí la imagen manda, no el rótulo.
+Sin versalitas y sin tracking ancho. El nombre usa `clamp` entre 28 y 44 px, no el titular de 164 px de la jornada de ensemblitz: aquí la imagen manda, no el rótulo.
 
 ## Composición
 
-Contenedor de 1240 px. A partir de 900 px la página es una columna y el vídeo pasa arriba, porque en el móvil se mira antes de elegir.
+Contenedor de 1240 px. A partir de 960 px la página es una columna y el vídeo queda arriba, porque en el móvil se mira antes de elegir.
 
-La división ancha es 7/5: la lista ocupa más que el escenario. El escenario es el único objeto con sombra, 6 px de desplazamiento, color tinta, sin desenfoque. Sirve para separar la imagen del papel, igual que la tarjeta principal de ensemblitz separa la bandera del resto. El interior del marco es negro porque ahí va la imagen, no como tema de la interfaz.
+La división ancha favorece el escenario (aprox. 65/35): el reproductor ocupa el protagonista a la izquierda y la lista de canales forma un carril scrollable a la derecha. El marco del vídeo y el diálogo de acceso o ajustes son los únicos objetos con sombra, 6 px de desplazamiento, color tinta, sin desenfoque. El interior del marco es negro porque ahí va la imagen, no como tema de la interfaz.
+
+Debajo del marco van la barra de estado real del motor, el botón de pantalla completa, el botón de parar y el selector de fuentes del canal cuando hay más de una. Las altas de canales, la importación de listas m3u (texto o archivo) y el cambio de clave viven dentro del diálogo de Ajustes para no estorbar la reproducción.
 
 Las filas de canal se separan con un filete punteado de 1 px. Es el único patrón. El canal en reproducción invierte tinta y papel para leerse desde el sofá.
 
-Los grupos son botones rectangulares de radio 2 px, con el recuento real al lado del nombre. El activo invierte la tinta. No son píldoras.
+Los grupos y las fuentes son botones rectangulares de radio 2 px. El activo invierte la tinta. No son píldoras.
 
 ## Mando
 
-Flechas: grupos, canales, formulario, vídeo. Derecha salta al vídeo. Izquierda vuelve a la lista. Inicio y fin van a la búsqueda y al escenario. Dentro de un campo de texto las flechas mueven el cursor. Escape sale del campo y anula un "Confirmar" a medias.
+Flechas: grupos, canales, ajustes, escenario. Derecha salta al vídeo. Izquierda vuelve a la lista. Inicio y fin van a la búsqueda y al escenario. `F` alterna pantalla completa fuera de los campos de texto. Dentro de un campo de texto las flechas mueven el cursor. Escape sale del campo, cierra Ajustes y anula un "Confirmar" a medias.
 
 El foco visible es un contorno de 2 px, separado 3 px. En la fila invertida el contorno pasa a color papel para seguir viéndose. No se quita el contorno.
 
@@ -73,7 +75,7 @@ Dianas de 44 px en botones y campos.
 
 ## Estados
 
-Vacío: no hay canales y se dice cómo añadir uno. Cargando: "Abriendo la mesa." Error de clave, de lista y de motor: una frase en el sitio del fallo. El motor en línea enseña la versión que de verdad ha contestado.
+Vacío: no hay canales y el propio marco ofrece abrir Ajustes. Cargando: "Abriendo la mesa." Buscando pares: se muestran el estado, el progreso, los pares y la velocidad reales que devuelve el motor (sin inventar cifras). Error de clave, de lista o de señal: una frase en el sitio del fallo, con opción de reintentar o saltar a la siguiente fuente. El motor en línea enseña la versión que de verdad ha contestado.
 
 ## Qué no entra
 
